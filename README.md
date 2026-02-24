@@ -1,168 +1,96 @@
-# cd-mab
+# Change-Detection Bandits
 
-Python implementation of **Change Detection + UCB** algorithms for the Piecewise Stationary Multi-Armed Bandit problem.
+Standard UCB assumes the reward distributions are stationary. In the real world they're not. A news article's click-through rate drops once the story goes stale. A product stops being the best recommendation after a trend shifts. This project is about what happens when you add change detectors to UCB algorithms — how well it works, and when it doesn't.
 
-Based on: *"A Change-Detection based Framework for Piecewise-stationary Multi-Armed Bandit Problem"* (Liu et al., IEEE TNNLS 2018).
+I originally implemented this in Wolfram Mathematica as a course project at IIT Madras, replicating experiments from Liu et al. (2018). This is the Python port, extended with a third bandit algorithm (D-UCB) and validated on real click-through data from Microsoft's MIND news dataset.
 
-Originally implemented in Wolfram Mathematica as part of a course project at IIT Madras.
+---
+
+## The problem
+
+A multi-armed bandit has K arms with unknown reward distributions. Standard UCB deals well with stationary rewards — it pulls an arm more confidently the more data it has that the arm is good. Non-stationarity breaks this: the best arm today might be the worst arm tomorrow, but UCB keeps exploiting stale historical data.
+
+Two strategies for handling it:
+
+**Active:** Attach a change detector to each arm. When it fires, treat that arm as unknown and start fresh — reset its statistics, leave the others alone.
+
+**Passive:** Forget old data deliberately. Keep only the last M observations (sliding window), or weight older ones less (geometric discounting). No explicit detection, just structured forgetting.
 
 ---
 
 ## Algorithms
 
-### Change Detectors (plug-in modules)
-| Class | Algorithm | Key Idea |
+### Change detectors
+
+Both detectors work by watching whether an arm's reward distribution has shifted from a reference level.
+
+**CUSUM** fixes the baseline from the first M observations. After burn-in it runs cumulative sum statistics and fires when either exceeds threshold h:
+
+```
+g⁺ₜ = max(0, g⁺ₜ₋₁ + (xₜ − μ₀ − ε))
+g⁻ₜ = max(0, g⁻ₜ₋₁ + (μ₀ − xₜ − ε))
+alarm if g⁺ₜ ≥ h or g⁻ₜ ≥ h
+```
+
+**PHT** (Page-Hinkley Test) is the same walk, but uses the running mean of all observations as the baseline rather than a fixed M-sample estimate. No burn-in required.
+
+On alarm, that arm's history resets. Detectors are arm-independent — a change in arm 2 doesn't touch the state of arms 1, 3, 4, 5.
+
+### Bandit algorithms
+
+| Algorithm | Type | How it handles change |
 |---|---|---|
-| `CUSUM` | Two-sided CUSUM | Fixed baseline from first M samples; walks reset on alarm |
-| `PHT` | Page-Hinkley Test | Running mean as adaptive baseline |
+| CUSUM-UCB | Active | CUSUM detector per arm; resets arm on alarm |
+| PHT-UCB | Active | PHT detector per arm; resets arm on alarm |
+| SW-UCB | Passive | Sliding window of last M rewards per arm |
+| D-UCB | Passive | Geometric discounting — older rewards weighted by γᵗ⁻ˢ |
 
-### Bandit Algorithms
-| Class | Type | Description |
-|---|---|---|
-| `CDUCB` | Active (CD-UCB) | UCB + pluggable change detector; resets arm on alarm |
-| `SWUCB` | Passive | Sliding window of last M rewards per arm |
-| `DUCB` | Passive | Geometric discounting of older rewards (extension) |
+All use UCB arm selection with exploration coefficient ξ = 1 (required for the regret bound). The active algorithms add a small forced-exploration probability α so they don't miss changes in arms they've stopped pulling.
 
 ---
 
-## Installation
+## Synthetic experiments
 
-```bash
-pip install -e ".[dev]"
-```
+### Flipping environment
 
-Or just install dependencies:
-```bash
-pip install -r requirements.txt
-```
+Two arms. Arm 0 is always Bernoulli(0.5). Arm 1 cycles between 0.5 − Δ and 0.8 at deterministic changepoints T/3 and 2T/3. Small Δ = hard (arms are similar); large Δ = easy (arm 1 is clearly better or worse).
 
----
+![Flipping environment: regret vs Δ](assets/flipping_regret.png)
 
-## Quick Start
+Both active methods outperform SW-UCB, and the gap grows with Δ. When the arms are easy to distinguish the detector fires quickly after a change and resets cleanly. At small Δ the signal is weak — it takes many samples to build up the walk statistic — so detection is slow and the advantage shrinks.
 
-```python
-from mab.detectors import CUSUM
-from mab.bandits import CDUCB, SWUCB, DUCB
-from mab.environments import FlippingEnv, SwitchingEnv
-from mab.experiment import run_experiment
-import numpy as np
+### Switching environment
 
-T = 999
-h = np.log(T / 2)
-alpha = np.sqrt((2 / T) * h)
+Five arms. At each step, every arm independently redraws its mean from U[0,1] with probability β = 0.2. This is a hazard-function model: changepoints arrive continuously and randomly per arm.
 
-# CD-UCB with CUSUM change detector
-regrets = run_experiment(
-    bandit_factory=lambda: CDUCB(
-        k=2, xi=1.0, alpha=alpha,
-        detector_cls=CUSUM,
-        detector_kwargs={"eps": 0.1, "M": 100, "h": h},
-    ),
-    env_factory=lambda: FlippingEnv(_T=T, delta=0.2),
-    n_trials=20,
-)
-print(f"Mean regret: {regrets.mean():.2f} ± {regrets.std():.2f}")
-```
+![Switching environment: regret vs T](assets/switching_regret.png)
+
+Completely different story. D-UCB has roughly 25% lower regret than everything else. CUSUM and PHT barely improve over SW-UCB.
+
+The reason is calibration. The switching model's hazard rate β directly determines the optimal discount factor: γ = 1 − β = 0.8, giving D-UCB an effective memory of 1/(1 − γ) = 5 steps. That matches the expected 1/β = 5 steps between changepoints exactly. CUSUM needs M = 100 samples just for burn-in — far longer than the typical time between changes. By the time a detector accumulates enough evidence to fire, the distribution has already changed several more times. Smooth exponential forgetting with the right γ is simply a better fit for very high-frequency change.
 
 ---
 
-## Reproducing Experiments
+## Real data: MIND news clicks
 
-**Flipping environment** (regret vs Δ, K=2):
-```bash
-python scripts/run_flipping.py --n-trials 20 --out flipping_regret.png
-```
+I ran the same algorithms on Microsoft's MIND-small dataset (156k impression logs, ~5.8M article display events). News click-through rates have natural non-stationarity: a story breaks, peaks quickly, then fades as the news cycle moves on.
 
-**Switching environment** (regret vs T, K=5, + D-UCB extension):
-```bash
-python scripts/run_switching.py --n-trials 20 --out switching_regret.png
-```
+For evaluation I used rejection sampling (Li et al. 2010): at each step the bandit proposes an article arm; the event counts only if that matches the article that was actually displayed in the log. This gives an unbiased estimate of the algorithm's CTR without needing a live deployment.
 
----
+Arms are the 10 most frequently displayed articles, covering ~181k events. The overall CTR for these articles is 7.9%.
 
-## Real-World Datasets (Offline Evaluation)
+![MIND-small: CTR over time](assets/mind_learning_curve.png)
 
-Both real-world datasets use **rejection-sampling** evaluation (Li et al. 2010):
-at each timestep the bandit proposes an arm; the event is valid only if that
-matches the arm that was actually logged.  Metric: **CTR = reward / valid events**.
+All three UCB variants converge quickly and plateau around 20–22% CTR — roughly 2.8× the random baseline. The learning curve shows this happens within the first ~2000 valid events.
 
-### MovieLens 100K (auto-download)
+![MIND-small: CTR by algorithm](assets/mind_ctr.png)
 
-Arms = top-K movie genres.  Events sorted by timestamp give gradual taste-shift
-non-stationarity.
+D-UCB is the interesting case. It won the switching environment but underperforms here at 12.2%. Two reasons. First, γ = 0.999 is too slow — it gives an effective memory of ~1000 steps, which is far too inert for articles that peak and fade within a few hundred impressions. Second, D-UCB has no forced exploration (no α term), so once it commits to an article it rarely re-explores, and misses articles that have since become more popular. In the synthetic switching env this didn't matter because γ was tuned to match β exactly. Here there's no such prior.
 
-```bash
-python scripts/run_movielens.py --k 5 --n-trials 20 --out movielens_ctr.png
-```
-
-The dataset (~5 MB) is downloaded automatically from GroupLens on first run.
-
-### Yahoo! R6A Click Log (registration required)
-
-Arms = top-K news articles.  News CTR shifts rapidly as stories break and fade,
-making this the primary real-data benchmark from the paper.
-
-```bash
-# 1. Register (free) at https://webscope.sandbox.yahoo.com/
-# 2. Download "R6 - Yahoo! Front Page Today Module User Click Log"
-# 3. Extract to a directory, then:
-python scripts/run_yahoo.py --data /path/to/r6a/ --k 10 --n-trials 10 --out yahoo_ctr.png
-
-# Quick smoke test with first 200 000 events:
-python scripts/run_yahoo.py --data /path/to/r6a/ --k 10 --max-events 200000 --n-trials 5
-```
-
-### Using any logged dataset
-
-```python
-import numpy as np
-from mab.environments import LoggedEnv
-from mab.bandits import CDUCB
-from mab.detectors import PHT
-from mab.experiment import run_offline_experiment
-
-# logged_arms  : shape (T,) — arm index that was displayed at each step
-# logged_rewards: shape (T,) — binary reward for the displayed arm
-logged_arms = np.array([...])
-logged_rewards = np.array([...])
-
-rewards, valid = run_offline_experiment(
-    bandit_factory=lambda: CDUCB(
-        k=5, xi=1.0, alpha=0.1,
-        detector_cls=PHT,
-        detector_kwargs={"eps": 0.1, "h": 3.0},
-    ),
-    env_factory=lambda: LoggedEnv(n_arms=5, logged_arms=logged_arms, logged_rewards=logged_rewards),
-    n_trials=10,
-)
-print(f"CTR: {(rewards / valid).mean():.4f}")
-```
+PHT-UCB edges CUSUM-UCB slightly because news article CTR shifts tend to be abrupt (sudden break → fast fade), which PHT detects without needing a fixed burn-in period. CUSUM's M = 100 sample burn-in takes longer to establish the pre-change baseline.
 
 ---
 
-## Tests
+## Reference
 
-```bash
-pytest
-```
-
----
-
-## Structure
-
-```
-mab/
-├── detectors/      # CUSUM, PHT
-├── bandits/        # CDUCB, SWUCB, DUCB
-├── environments/   # FlippingEnv, SwitchingEnv, LoggedEnv
-├── datasets/       # load_movielens(), load_yahoo_r6a()
-├── experiment.py   # run_experiment() + run_offline_experiment()
-└── plotting.py     # matplotlib figure helpers
-scripts/
-├── run_flipping.py
-├── run_switching.py
-├── run_movielens.py
-└── run_yahoo.py
-tests/
-data/               # downloaded datasets (gitignored)
-```
+Liu, H., Dolan, E., Zhou, H., & Shroff, N. (2018). A Change-Detection based Framework for Piecewise-stationary Multi-Armed Bandit Problem. *IEEE Transactions on Neural Networks and Learning Systems*.

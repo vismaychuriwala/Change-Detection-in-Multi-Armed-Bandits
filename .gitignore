@@ -19,8 +19,11 @@ env/
 .coverage
 htmlcov/
 
-# Output files
-*.png
-*.pdf
+# Output files (root-level experiment outputs — not committed)
+/*.png
+/*.pdf
+
+# Keep committed plot assets
+!assets/
 
 *.toml
