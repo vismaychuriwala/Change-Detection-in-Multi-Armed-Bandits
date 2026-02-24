@@ -1,17 +1,4 @@
-"""Switching environment (Mellor & Shapiro 2013; Liu et al. 2018, Section V-A).
-
-Each arm independently switches its mean at each timestep with probability beta
-(the hazard rate).  When a switch occurs the new mean is drawn from U[0, 1].
-
-  mu_t(i) = mu_{t-1}(i)      with probability 1 - beta
-           = U[0, 1] sample  with probability beta
-
-Initial means mu_0(i) ~ U[0, 1] for all i.  All rewards are Bernoulli.
-
-Using a constant hazard function beta = gamma_T / T (as in the paper's
-experiments) gives an expected total of gamma_T breakpoints across all arms
-over the horizon T.
-"""
+"""Switching environment with random mean changes per arm."""
 
 from dataclasses import dataclass
 

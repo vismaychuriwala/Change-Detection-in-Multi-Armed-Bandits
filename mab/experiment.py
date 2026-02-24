@@ -1,17 +1,4 @@
-"""Experiment runner for MAB simulations.
-
-Synthetic environments (full information):
-  run_trial()           — single trial, returns cumulative regret.
-  run_experiment()      — Monte Carlo average over n_trials with joblib.
-
-Logged / offline datasets (rejection-sampling):
-  run_offline_trial()      — single trial, returns (cumulative_reward, valid_events).
-  run_offline_experiment() — same, parallelised over n_trials.
-
-The offline functions implement the rejection-sampling evaluator of Li et al.
-(2010): at each timestep the bandit proposes an arm; the event is only counted
-if that arm matches the one that was actually logged.
-"""
+"""Experiment runners for MAB simulations."""
 
 from __future__ import annotations
 
@@ -35,11 +22,7 @@ def run_trial(
     bandit_factory: Callable[[], BanditAlgorithm],
     env_factory: Callable[[], Environment],
 ) -> float:
-    """Run one trial and return total cumulative regret.
-
-    Both factory callables are invoked fresh each trial so that state
-    is never shared across trials (important for joblib process workers).
-    """
+    """Run one trial and return total cumulative regret."""
     bandit = bandit_factory()
     env = env_factory()
     env.reset()
@@ -61,23 +44,7 @@ def run_experiment(
     n_trials: int = 20,
     n_jobs: int = -1,
 ) -> np.ndarray:
-    """Run n_trials independent trials and return the array of regrets.
-
-    Parameters
-    ----------
-    bandit_factory:
-        Callable that returns a fresh BanditAlgorithm instance.
-    env_factory:
-        Callable that returns a fresh Environment instance.
-    n_trials:
-        Number of independent Monte Carlo trials.
-    n_jobs:
-        Number of parallel workers (passed to joblib). -1 = all CPUs.
-
-    Returns
-    -------
-    regrets : ndarray of shape (n_trials,)
-    """
+    """Run multiple trials in parallel."""
     regrets = Parallel(n_jobs=n_jobs)(
         delayed(run_trial)(bandit_factory, env_factory) for _ in range(n_trials)
     )
@@ -92,27 +59,7 @@ def run_offline_trial(
     bandit_factory: Callable[[], BanditAlgorithm],
     env_factory: Callable[[], "LoggedEnv"],
 ) -> tuple[float, int]:
-    """Offline bandit evaluation via rejection sampling (Li et al. 2010).
-
-    At each timestep the bandit proposes an arm.  If it matches the logged
-    arm the event is **valid**: the bandit receives the reward and its state
-    is updated.  Otherwise the event is **skipped** and the bandit is NOT
-    updated (its internal counts/means stay unchanged).
-
-    Running multiple trials with a stochastic bandit (alpha > 0) yields
-    different sequences of valid events, so averaging CTR over trials is
-    meaningful.
-
-    Parameters
-    ----------
-    bandit_factory : Callable returning a fresh BanditAlgorithm.
-    env_factory    : Callable returning a fresh LoggedEnv.
-
-    Returns
-    -------
-    cumulative_reward : float — total reward from valid events.
-    valid_events      : int   — number of non-skipped timesteps.
-    """
+    """Offline evaluation with rejection sampling."""
     bandit = bandit_factory()
     env = env_factory()
     env.reset()
@@ -138,22 +85,7 @@ def run_offline_experiment(
     n_trials: int = 10,
     n_jobs: int = -1,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Run n_trials of offline evaluation, parallelised with joblib.
-
-    Parameters
-    ----------
-    bandit_factory : Callable returning a fresh BanditAlgorithm.
-    env_factory    : Callable returning a fresh LoggedEnv.
-    n_trials       : Number of independent trials.
-    n_jobs         : joblib workers (-1 = all CPUs).
-
-    Returns
-    -------
-    rewards      : ndarray, shape (n_trials,) — cumulative reward per trial.
-    valid_events : ndarray, shape (n_trials,) — valid event count per trial.
-
-    CTR per trial = rewards / valid_events.
-    """
+    """Run multiple offline trials in parallel."""
     results = Parallel(n_jobs=n_jobs)(
         delayed(run_offline_trial)(bandit_factory, env_factory)
         for _ in range(n_trials)

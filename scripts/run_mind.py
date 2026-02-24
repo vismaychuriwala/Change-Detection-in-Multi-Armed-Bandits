@@ -1,26 +1,4 @@
-"""Offline MAB benchmark on MIND-small news click dataset.
-
-Arms   = top-K most frequently shown news articles.
-Events = individual (article, click) pairs expanded from impression logs,
-         in impression order (approximately chronological).
-Reward = 1 if the user clicked, 0 otherwise.
-
-News article click-through rates shift rapidly as stories break and fade,
-creating natural piecewise-stationary non-stationarity for CD algorithms.
-
-Evaluation uses rejection sampling (Li et al. 2010): at each timestep the
-bandit proposes an article arm; the event counts only if that matches the
-logged article.  Metric: CTR = total reward / valid events.
-
-Dataset
--------
-Download MIND-small from https://www.kaggle.com/datasets/arashnic/mind-news-dataset
-Extract so that behaviors.tsv is at:  data/mind/train/MINDsmall_train/behaviors.tsv
-
-Usage
------
-  python scripts/run_mind.py --k 10 --n-trials 10 --out assets/mind_ctr.png
-"""
+"""Offline MAB benchmark on MIND-small news dataset."""
 
 import argparse
 

@@ -1,25 +1,4 @@
-"""Offline MAB benchmark on Yahoo! R6A click log.
-
-Arms   = top-K most frequently displayed news articles.
-Events = all log entries where the displayed article is in the top-K.
-Reward = 1 if the user clicked, 0 otherwise.
-
-Evaluation uses rejection sampling (Li et al. 2010 / Liu et al. 2018):
-at each step the bandit proposes an article arm; the event is only counted
-if that matches the logged article.  CTR = total reward / valid events.
-
-The dataset requires **free registration** at Yahoo! Webscope:
-  https://webscope.sandbox.yahoo.com/catalog.php?datatype=r
-  Dataset: "R6 - Yahoo! Front Page Today Module User Click Log (Version 1.0)"
-
-Usage
------
-  # full dataset (slow first run — ~36 M events)
-  python scripts/run_yahoo.py --data /path/to/r6a/ --k 10 --n-trials 10
-
-  # quick smoke test with first 200 000 events
-  python scripts/run_yahoo.py --data /path/to/r6a/ --k 10 --max-events 200000 --n-trials 5
-"""
+"""Offline MAB benchmark on Yahoo! R6A dataset."""
 
 import argparse
 

@@ -1,15 +1,4 @@
-"""Reproduce the switching-environment regret vs T experiment (Fig 2b).
-
-Usage:
-    python scripts/run_switching.py [--n-trials N] [--n-jobs J] [--out PATH]
-
-Parameters match the Mathematica reproduction:
-    K=5, beta=0.2, 20 trials, T ∈ {1000, 2000, ..., 10000}
-    CUSUM: ε=0.1, M=100, h=log(1/beta), α=sqrt(beta*log(1/beta))
-    PHT  : ε=0.1,        h=log(1/beta), α=sqrt(beta*log(1/beta))
-    SW   : ε=0.1, M=30,  h=log(1/beta), α=sqrt(beta*log(1/beta))
-    D-UCB: gamma=1-beta, ε=0.1  (extension — passive, no alpha)
-"""
+"""Switching environment experiment: regret vs horizon."""
 
 import argparse
 import sys

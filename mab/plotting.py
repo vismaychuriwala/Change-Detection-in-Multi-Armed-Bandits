@@ -9,20 +9,12 @@ import numpy as np
 
 
 def plot_regret_vs_delta(
-    results: dict[str, list[float]],  # label -> list of mean regrets (one per delta)
+    results: dict[str, list[float]],
     deltas: list[float],
     title: str = "Flipping environment",
     save_path: str | Path | None = None,
 ) -> plt.Figure:
-    """Plot mean regret vs delta (reproduces Fig 2a style).
-
-    Parameters
-    ----------
-    results:
-        Dict mapping algorithm label to list of mean regrets, one per delta value.
-    deltas:
-        The delta values on the x-axis.
-    """
+    """Plot mean regret vs delta."""
     colors = {"CUSUM-UCB": "red", "PHT-UCB": "gray", "SW-UCB": "green", "D-UCB": "blue"}
     markers = {"CUSUM-UCB": "o", "PHT-UCB": "s", "SW-UCB": "^", "D-UCB": "D"}
 

@@ -1,20 +1,4 @@
-"""MovieLens 100K dataset loader.
-
-Downloads ml-100k.zip from GroupLens automatically if not already present.
-
-Arms are movie genres (top-K by total rating count).  Each rating event
-becomes one logged bandit observation:
-  - logged arm    = primary genre of the rated movie
-  - logged reward = 1 if rating >= threshold, else 0
-
-Events are sorted by timestamp, giving a natural temporal ordering with
-gradual taste-shift non-stationarity.
-
-Reference
----------
-F. Maxwell Harper and Joseph A. Konstan (2015).  The MovieLens Datasets:
-History and Context.  ACM TiiS 5(4), Article 19.
-"""
+"""MovieLens 100K dataset loader."""
 
 import zipfile
 from pathlib import Path

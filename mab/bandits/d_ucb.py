@@ -1,17 +1,6 @@
 """D-UCB: Discounted Upper Confidence Bound (Kocsis & Szepesvári 2006).
 
-Another passively adaptive baseline. Older rewards are down-weighted
-geometrically by factor gamma in (0, 1), so the algorithm naturally forgets
-stale observations without explicit change detection.
-
-Discounted statistics updated O(K) per step by decaying running sums:
-  n_gamma[i] = sum_{s=1}^{t} gamma^{t-s} * 1_{I_s = i}
-  r_gamma[i] = sum_{s=1}^{t} gamma^{t-s} * X_s(i) * 1_{I_s = i}
-  avg_gamma[i] = r_gamma[i] / n_gamma[i]
-
-UCB index: avg_gamma(i) + B * sqrt(eps * log(n_t) / n_gamma(i))
-  where n_t = sum_i n_gamma(i)  (total discounted count)
-        B   = reward range (1 for Bernoulli)
+Uses geometric discounting to forget old rewards in non-stationary settings.
 """
 
 from dataclasses import dataclass
@@ -49,9 +38,7 @@ class DUCB(BanditAlgorithm):
         return int(np.argmax(ucb))
 
     def update(self, arm: int, reward: float) -> None:
-        # Decay all arms before adding new observation.
         self._n_gamma *= self.gamma
         self._r_gamma *= self.gamma
-        # Update played arm.
         self._n_gamma[arm] += 1.0
         self._r_gamma[arm] += reward

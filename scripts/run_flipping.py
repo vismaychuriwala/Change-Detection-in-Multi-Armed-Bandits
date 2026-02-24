@@ -1,14 +1,4 @@
-"""Reproduce the flipping-environment regret vs Δ experiment (Fig 2a).
-
-Usage:
-    python scripts/run_flipping.py [--n-trials N] [--n-jobs J] [--out PATH]
-
-Parameters match the Mathematica reproduction:
-    T = 999, K = 2, 20 trials, Δ ∈ {0.02, 0.04, ..., 0.30}
-    CUSUM: ε=0.1, M=100, h=log(T/2), α=sqrt((2/T)*log(T/2))
-    PHT  : ε=0.1,        h=log(T/2), α=sqrt((2/T)*log(T/2))
-    SW   : ε=0.1, M=30,  h=log(T/2), α=sqrt((2/T)*log(T/2))
-"""
+"""Flipping environment experiment: regret vs delta."""
 
 import argparse
 import sys

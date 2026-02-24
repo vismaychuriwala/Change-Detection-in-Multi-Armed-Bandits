@@ -1,15 +1,6 @@
 """SW-UCB: Sliding Window Upper Confidence Bound.
 
-A passively adaptive bandit that maintains a fixed-length window of recent
-rewards per arm. The UCB index is computed using only the M most recent
-observations, allowing the algorithm to track changes without explicit detection.
-
-UCB index: avg_M(i) + sqrt(eps * log(n_t) / N_M(i))
-  where avg_M(i) = mean of last M rewards for arm i,
-        N_M(i)  = min(plays of arm i, M),
-        n_t     = sum of N_M(i) across all arms.
-
-No change detection is performed — this is the passive baseline.
+Maintains a fixed-size window of recent rewards per arm for adaptation.
 """
 
 from collections import deque
@@ -37,7 +28,6 @@ class SWUCB(BanditAlgorithm):
         if np.random.random() < self.alpha:
             return int(np.random.randint(self.k))
 
-        # n_t = total observations across all windows (each capped at M).
         sizes = np.array([len(w) for w in self._windows])
         n_t = int(sizes.sum())
         log_nt = np.log(max(1, n_t))
@@ -48,7 +38,6 @@ class SWUCB(BanditAlgorithm):
             np.array([np.mean(w) if w else 0.0 for w in self._windows])
             + np.sqrt(self.eps * log_nt / np.maximum(sizes, 1)),
         )
-        # Mask zero-size arms back to inf.
         ucb[sizes == 0] = np.inf
         return int(np.argmax(ucb))
 

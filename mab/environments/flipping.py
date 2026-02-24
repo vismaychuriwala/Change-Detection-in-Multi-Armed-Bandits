@@ -1,15 +1,4 @@
-"""Flipping environment (Liu et al. 2018, Section V-A).
-
-Two arms with Bernoulli rewards:
-  Arm 0: stationary at mu = 0.5 throughout.
-  Arm 1: mu = 0.5 - delta  for  t in [0, T/3)  and  [2T/3, T)
-          mu = 0.8          for  t in [T/3, 2T/3)
-
-Two change points occur at T/3 and 2T/3.  The parameter delta controls how
-large the gap is between phases; larger delta makes changes easier to detect.
-
-The mu matrix is precomputed on reset() and rewards are drawn Bernoulli(mu).
-"""
+"""Flipping environment with two arms and scheduled mean changes."""
 
 from dataclasses import dataclass
 

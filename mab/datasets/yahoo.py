@@ -1,29 +1,4 @@
-"""Yahoo! R6A dataset loader.
-
-The R6A dataset requires **free registration** at Yahoo! Webscope:
-  https://webscope.sandbox.yahoo.com/catalog.php?datatype=r
-
-Select: "R6 - Yahoo! Front Page Today Module User Click Log (Version 1.0)"
-
-After downloading and extracting, the dataset directory contains files named:
-  ydata-fp-td-clicks-v1_0.XXXXXX
-
-Each line format (space / pipe delimited):
-  timestamp  article_id  click  |user  feat:val …  |article_id  feat:val …  …
-                                                     ^-- candidate article pool --^
-
-Arms are the top-K most-frequently displayed articles across the whole log.
-Events where the displayed article is not in the top-K are discarded during
-loading (they are not useful for rejection-sampling evaluation of K-arm bandits).
-
-Reference
----------
-Liu, H., Dolan, E., Zhou, H., & Shroff, N. (2018).  A Change-Detection based
-Framework for Piecewise-stationary Multi-Armed Bandit Problem.  IEEE TNNLS.
-
-Li, L. et al. (2010).  A Contextual-Bandit Approach to Personalized News
-Article Recommendation.  WWW.
-"""
+"""Yahoo! R6A dataset loader."""
 
 from pathlib import Path
 

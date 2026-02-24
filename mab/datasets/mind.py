@@ -1,28 +1,4 @@
-"""MIND-small dataset loader.
-
-Loads the MIND-small behaviors.tsv as a logged bandit dataset for offline
-rejection-sampling evaluation.
-
-Each impression row (one user session) shows several news articles simultaneously.
-We expand impressions into individual (article_id, click) events in impression
-order, which is approximately chronological.  This gives natural non-stationarity:
-news articles peak in popularity as they break and fade as they age.
-
-Arms = top-K most frequently shown articles across the entire split.
-
-Dataset
--------
-MIND-small train split (~65 MB):
-  https://www.kaggle.com/datasets/arashnic/mind-news-dataset
-
-Expected layout after extraction:
-  data/mind/train/MINDsmall_train/behaviors.tsv
-
-Reference
----------
-Wu, F., Qiao, Y., Chen, J. H., et al. (2020).
-MIND: A Large-scale Dataset for News Recommendation. ACL 2020.
-"""
+"""MIND-small dataset loader."""
 
 from pathlib import Path
 
