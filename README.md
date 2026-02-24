@@ -13,8 +13,8 @@ I originally implemented this in Wolfram Mathematica as a course project at IIT 
 - [Synthetic experiments](#synthetic-experiments)
   - [Flipping environment](#flipping-environment)
   - [Switching environment](#switching-environment)
-- [Real data: MovieLens 100K](#real-data-movielens-100k)
 - [Real data: MIND news clicks](#real-data-mind-news-clicks)
+- [Real data: MovieLens 100K](#real-data-movielens-100k)
 - [Reference](#reference)
 
 ---
